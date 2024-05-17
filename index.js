@@ -283,9 +283,6 @@ app.use(express.json());
 app.use('/telegram-webhook', webhookCallback(bot, 'express'));
 
 const port = process.env.PORT || 3000;
-app.listen(port, async () => {
+app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  // Set the webhook when the service starts
-  const webhookUrl = `https://your-app-name.onrender.com/telegram-webhook`; // Replace with your actual Render URL
-  await bot.api.setWebhook(webhookUrl);
 });
