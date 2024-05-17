@@ -2,10 +2,10 @@ const express = require('express');
 const puppeteer = require('puppeteer-extra');
 const { Bot, webhookCallback, InputFile } = require('grammy');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const path = require('path');
+const fs = require('fs').promises;
 
 puppeteer.use(StealthPlugin());
-
-const { executablePath } = require('puppeteer');
 
 process.setMaxListeners(15);
 
@@ -22,13 +22,13 @@ let shouldStopScraping = false;
 
 async function scraping(ctx) {
   try {
+    console.log('Starting scraping process...');
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: executablePath(),
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
-    const page = await browser.newPage();
 
+    const page = await browser.newPage();
     await page.setUserAgent(
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0"
     );
@@ -262,6 +262,7 @@ async function scraping(ctx) {
     await browser.close();
   } catch (error) {
     console.error("An error occurred:", error);
+    ctx.reply(`An error occurred: ${error.message}`);
   }
 }
 
