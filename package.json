@@ -1,0 +1,16 @@
+{
+    "name": "my-telegram-bot",
+    "version": "1.0.0",
+    "main": "index.js",
+    "scripts": {
+      "start": "node index.js"
+    },
+    "dependencies": {
+      "express": "^4.17.1",
+      "grammy": "^1.8.3",
+      "puppeteer-extra": "^3.1.18",
+      "puppeteer-extra-plugin-stealth": "^2.7.8",
+      "puppeteer": "^10.0.0"
+    }
+  }
+  
