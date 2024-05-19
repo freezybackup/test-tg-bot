@@ -5,7 +5,13 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
 puppeteer.use(StealthPlugin());
 
+// Use puppeteer-core and set executable path to Chromium installed by Puppeteer
 const { executablePath } = require('puppeteer');
+const puppeteerOptions = {
+  headless: true,
+  executablePath: executablePath(),
+  args: ['--no-sandbox', '--disable-setuid-sandbox'],
+};
 
 process.setMaxListeners(15);
 
@@ -22,18 +28,20 @@ let shouldStopScraping = false;
 
 async function scraping(ctx) {
   try {
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath: executablePath(),
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    console.log('Starting scraping process...');
+    const browser = await puppeteer.launch(puppeteerOptions);
+    console.log('Browser launched.');
+
     const page = await browser.newPage();
+    console.log('New page opened.');
 
     await page.setUserAgent(
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0"
     );
+    console.log('User agent set.');
 
     await page.goto("https://opensea.io/rankings?sortBy=one_day_volume");
+    console.log('Navigated to OpenSea rankings page.');
 
     let hrefLinks = [];
     let loadMoreButtonVisible = true;
@@ -53,6 +61,7 @@ async function scraping(ctx) {
       });
 
       await new Promise((resolve) => setTimeout(resolve, 4000));
+      console.log('Page scrolled.');
 
       const newLinks = await page.evaluate(() => {
         const elements = document.querySelectorAll("a");
@@ -61,6 +70,7 @@ async function scraping(ctx) {
 
       hrefLinks.push(...newLinks);
       hrefLinks = [...new Set(hrefLinks)];
+      console.log('Links collected:', hrefLinks.length);
 
       loadMoreButtonVisible = await page.evaluate(() => {
         const button = document.evaluate(
@@ -109,7 +119,7 @@ async function scraping(ctx) {
     }
 
     const collectionLinks = hrefLinks.filter((link) => link.includes("collection"));
-    console.log(collectionLinks.length);
+    console.log('Filtered collection links:', collectionLinks.length);
 
     const collectionsWithDiscordLinks = [];
     const maxRetries = 3;
@@ -127,7 +137,7 @@ async function scraping(ctx) {
       while (retries < maxRetries && !pageLoaded) {
         try {
           await page.goto(collectionLink, { timeout: 60000 });
-          console.log("Opening Link", collectionLink);
+          console.log("Opening Link:", collectionLink);
           ctx.reply(`Scraping <a href="${collectionLink}">Link</a>`, { parse_mode: 'HTML' });
 
           const moreHorizButtonVisible = await page.evaluate(() => {
@@ -232,7 +242,7 @@ async function scraping(ctx) {
       });
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      console.log("Opening Discord Link: " + discordLink);
+      console.log("Opening Discord Link:", discordLink);
       ctx.reply(`Opening Discord Link: <a href="${discordLink}">${collectionName}</a>`, { parse_mode: 'HTML' });
 
       const textOnPage = await page.evaluate(() => document.body.innerText);
@@ -241,7 +251,7 @@ async function scraping(ctx) {
         let discordInvalid = "";
         invalidLinks.push(`${collectionName}: ${discordLink}`);
         discordInvalid += `${collectionName}:${discordLink}\n`;
-        console.log("Invalid Discord Link found: " + discordLink);
+        console.log("Invalid Discord Link found:", discordLink);
         ctx.reply(`Invalid Discord Link Found ${collectionName}:${discordLink}`);
       }
     }
@@ -262,18 +272,24 @@ async function scraping(ctx) {
     await browser.close();
   } catch (error) {
     console.error("An error occurred:", error);
+    ctx.reply(`An error occurred: ${error.message}`);
   }
 }
 
-bot.command("start", (ctx) => ctx.reply("Welcome! Up and running."));
+bot.command("start", (ctx) => {
+  console.log('/start command received');
+  ctx.reply("Welcome! Up and running.");
+});
 
 bot.command("scrape", async (ctx) => {
+  console.log('/scrape command received');
   shouldStopScraping = false;
   ctx.reply("Starting Scraping process");
   scraping(ctx);
 });
 
 bot.command("stop", async (ctx) => {
+  console.log('/stop command received');
   shouldStopScraping = true;
   ctx.reply("Stopping Scraping process");
 });
