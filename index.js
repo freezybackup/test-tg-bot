@@ -1,21 +1,22 @@
 const express = require('express');
-const puppeteer = require('puppeteer-extra');
+const puppeteer = require('puppeteer-core');
 const { Bot, webhookCallback, InputFile } = require('grammy');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const chromium = require('chrome-aws-lambda');
 
 puppeteer.use(StealthPlugin());
 
-// Use puppeteer-core and set executable path to Chromium installed by Puppeteer
-const { executablePath } = require('puppeteer');
-const puppeteerOptions = {
-  headless: true,
-  executablePath: executablePath(),
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
-};
+async function getPuppeteerOptions() {
+  const options = {
+    args: chromium.args,
+    executablePath: await chromium.executablePath,
+    headless: chromium.headless,
+  };
+  return options;
+}
 
 process.setMaxListeners(15);
 
-// Read the bot token from environment variables
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 if (!botToken) {
   throw new Error('TELEGRAM_BOT_TOKEN is not set');
@@ -23,13 +24,13 @@ if (!botToken) {
 
 const bot = new Bot(botToken);
 
-// State to track whether scraping should be stopped
 let shouldStopScraping = false;
 
 async function scraping(ctx) {
   try {
     console.log('Starting scraping process...');
-    const browser = await puppeteer.launch(puppeteerOptions);
+    const options = await getPuppeteerOptions();
+    const browser = await puppeteer.launch(options);
     console.log('Browser launched.');
 
     const page = await browser.newPage();
